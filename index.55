@@ -1,0 +1,103 @@
+#include <iostream>
+#include <vector>
+#include <list>
+#include <chrono>
+#include <random>
+
+// Функція для вимірювання часу виконання
+template <typename Func>
+void measureTime(const std::string& operation, Func func) {
+    auto start = std::chrono::high_resolution_clock::now();
+    func();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << operation << ": " << elapsed.count() << " мс" << std::endl;
+}
+
+// Заповнення списку випадковими числами
+template <typename T>
+void fillList(T& container, int size) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, size);
+    for (int i = 0; i < size; ++i) {
+        container.push_back(dis(gen));
+    }
+}
+
+// Доступ до елементів (Random Access)
+template <typename T>
+void randomAccess(const T& container) {
+    for (size_t i = 0; i < container.size(); ++i) {
+        volatile auto temp = container[i]; // volatile для запобігання оптимізації
+    }
+}
+
+
+template <typename T>
+void sequentialAccess(const T& container) {
+    for (const auto& item : container) {
+        volatile auto temp = item; // volatile для запобігання оптимізації
+    }
+}
+
+//  на початок списку
+template <typename T>
+void insertAtStart(T& container, int count) {
+    for (int i = 0; i < count; ++i) {
+        container.insert(container.begin(), i);
+    }
+}
+
+//  кінець списку
+template <typename T>
+void insertAtEnd(T& container, int count) {
+    for (int i = 0; i < count; ++i) {
+        container.push_back(i);
+    }
+}
+
+template <typename T>
+void insertInMiddle(T& container, int count) {
+    auto middle = container.begin();
+    std::advance(middle, container.size() / 2);
+    for (int i = 0; i < count; ++i) {
+        container.insert(middle, i);
+    }
+}
+
+int main() {
+    const int listSize = 100000; // Розмір списку
+    const int insertCount = 1000; // елементи 
+
+    // Ініціалізація std::vector та std::list
+    std::vector<int> vec;
+    std::list<int> lst;
+
+    std::cout << "Заповнення списків:" << std::endl;
+    measureTime("std::vector заповнення", [&]() { fillList(vec, listSize); });
+    measureTime("std::list заповнення", [&]() { fillList(lst, listSize); });
+
+    std::cout << "\nДоступ до елементів (Random Access):" << std::endl;
+    measureTime("std::vector Random Access", [&]() { randomAccess(vec); });
+    // Для std::list Random Access не підходить оскільки std::list не підтримує доступ за індексом
+
+    std::cout << "\nДоступ до елементів (Sequential Access):" << std::endl;
+    measureTime("std::vector Sequential Access", [&]() { sequentialAccess(vec); });
+    measureTime("std::list Sequential Access", [&]() { sequentialAccess(lst); });
+
+   
+    std::cout << "\nВставка на початок списку:" << std::endl;
+    measureTime("std::vector вставка на початок", [&]() { insertAtStart(vec, insertCount); });
+    measureTime("std::list вставка на початок", [&]() { insertAtStart(lst, insertCount); });
+
+    std::cout << "\nВставка в кінець списку:" << std::endl;
+    measureTime("std::vector вставка в кінець", [&]() { insertAtEnd(vec, insertCount); });
+    measureTime("std::list вставка в кінець", [&]() { insertAtEnd(lst, insertCount); });
+
+    std::cout << "\nВставка в середину списку:" << std::endl;
+    measureTime("std::vector вставка в середину", [&]() { insertInMiddle(vec, insertCount); });
+    measureTime("std::list вставка в середину", [&]() { insertInMiddle(lst, insertCount); });
+
+    return 0;
+}
